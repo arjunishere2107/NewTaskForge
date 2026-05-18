@@ -3,7 +3,6 @@ from typing import Optional
 
 
 class UserCreate(BaseModel):
-
     phone: str
     email: Optional[str] = None
 
@@ -14,6 +13,10 @@ class UserCreate(BaseModel):
     parent_phone: str
 
 
-class UserLogin(BaseModel):
-
+class UserResponse(BaseModel):
+    id: int
     phone: str
+    student_name: str
+
+    class Config:
+        from_attributes = True

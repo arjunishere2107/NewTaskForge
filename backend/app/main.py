@@ -3,12 +3,31 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 
-from app.routes import auth, projects, tasks
-from app.models import user, project, task
+# Routes
+import app.routes.auth as auth
+import app.routes.instructor as instructor
+import app.routes.slot as slot
+import app.routes.enrollment as enrollment
 
+# ONLY keep this if session.py exists
+import app.routes.session as session_route
+
+# Models
+from app.models import (
+    user,
+    instructor as instructor_model,
+    enrollment as enrollment_model,
+    instructor_slot,
+    session,
+    session_ledger
+)
+
+# Create database tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
+app = FastAPI(
+    title="EdTech Platform API"
+)
 
 # CORS Middleware
 app.add_middleware(
@@ -19,29 +38,44 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Authentication Routes
+# Auth Routes
 app.include_router(
     auth.router,
     prefix="/auth",
-    tags=["Authentication"]
+    tags=["Auth"]
 )
 
-# Project Routes
+# Instructor Routes
 app.include_router(
-    projects.router,
-    prefix="/projects",
-    tags=["Projects"]
+    instructor.router,
+    prefix="/instructors",
+    tags=["Instructors"]
 )
 
-# Task Routes
+# Slot Routes
 app.include_router(
-    tasks.router,
-    prefix="/tasks",
-    tags=["Tasks"]
+    slot.router,
+    prefix="/slots",
+    tags=["Slots"]
 )
 
+# Enrollment Routes
+app.include_router(
+    enrollment.router,
+    prefix="/enrollments",
+    tags=["Enrollments"]
+)
+
+# Session Routes
+app.include_router(
+    session_route.router,
+    prefix="/sessions",
+    tags=["Sessions"]
+)
+
+# Home Route
 @app.get("/")
 def home():
     return {
-        "message": "TaskForge API Running"
+        "message": "EdTech Platform API Running"
     }

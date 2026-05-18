@@ -4,46 +4,88 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.schemas.user_schema import UserCreate, UserLogin
-from app.utils.auth import hash_password, verify_password, create_access_token
+from app.utils.auth import create_access_token
 
 router = APIRouter()
 
+
+# =========================
+# SIGNUP
+# =========================
 @router.post("/signup")
 def signup(user: UserCreate, db: Session = Depends(get_db)):
 
-    existing_user = db.query(User).filter(User.email == user.email).first()
+    # Check existing phone
+    existing_user = (
+        db.query(User)
+        .filter(User.phone == user.phone)
+        .first()
+    )
 
     if existing_user:
-        raise HTTPException(status_code=400, detail="Email already exists")
+        raise HTTPException(
+            status_code=400,
+            detail="Phone number already exists"
+        )
 
+    # Create user
     new_user = User(
-        name=user.name,
+        phone=user.phone,
         email=user.email,
-        password=hash_password(user.password),
-        role=user.role
+
+        student_name=user.student_name,
+        student_age=user.student_age,
+
+        parent_name=user.parent_name,
+        parent_phone=user.parent_phone,
+
+        # Trial system
+        trial_status="not_started",
+
+        # User status
+        status="active"
     )
 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
 
-    return {"message": "User created successfully"}
+    # JWT Token
+    token = create_access_token({
+        "id": new_user.id,
+        "phone": new_user.phone
+    })
 
+    return {
+        "message": "User created successfully",
+        "access_token": token,
+        "token_type": "bearer"
+    }
+
+
+# =========================
+# LOGIN
+# =========================
 @router.post("/login")
 def login(user: UserLogin, db: Session = Depends(get_db)):
 
-    existing_user = db.query(User).filter(User.email == user.email).first()
+    existing_user = (
+        db.query(User)
+        .filter(User.phone == user.phone)
+        .first()
+    )
 
     if not existing_user:
-        raise HTTPException(status_code=400, detail="Invalid email")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid phone number"
+        )
 
-    if not verify_password(user.password, existing_user.password):
-        raise HTTPException(status_code=400, detail="Invalid password")
+    # Later Firebase OTP verification will happen here
 
     token = create_access_token({
         "id": existing_user.id,
-        "email": existing_user.email,
-        "role": existing_user.role
+        "phone": existing_user.phone
     })
 
     return {
