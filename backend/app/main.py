@@ -3,16 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 
-# Routes
+# ROUTES
 import app.routes.auth as auth
 import app.routes.instructor as instructor
 import app.routes.slot as slot
 import app.routes.enrollment as enrollment
-
-# ONLY keep this if session.py exists
 import app.routes.session as session_route
+import app.routes.dashboard as dashboard
 
-# Models
+# MODELS
 from app.models import (
     user,
     instructor as instructor_model,
@@ -22,14 +21,15 @@ from app.models import (
     session_ledger
 )
 
-# Create database tables
+# CREATE TABLES
 Base.metadata.create_all(bind=engine)
 
+# FASTAPI APP
 app = FastAPI(
     title="EdTech Platform API"
 )
 
-# CORS Middleware
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -38,44 +38,51 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Auth Routes
+# AUTH ROUTES
 app.include_router(
     auth.router,
     prefix="/auth",
     tags=["Auth"]
 )
 
-# Instructor Routes
+# INSTRUCTOR ROUTES
 app.include_router(
     instructor.router,
     prefix="/instructors",
     tags=["Instructors"]
 )
 
-# Slot Routes
+# SLOT ROUTES
 app.include_router(
     slot.router,
     prefix="/slots",
     tags=["Slots"]
 )
 
-# Enrollment Routes
+# ENROLLMENT ROUTES
 app.include_router(
     enrollment.router,
     prefix="/enrollments",
     tags=["Enrollments"]
 )
 
-# Session Routes
+# SESSION ROUTES
 app.include_router(
     session_route.router,
     prefix="/sessions",
     tags=["Sessions"]
 )
 
-# Home Route
+# DASHBOARD ROUTES
+app.include_router(
+    dashboard.router,
+    prefix="/dashboard",
+    tags=["Dashboard"]
+)
+
+# HOME ROUTE
 @app.get("/")
 def home():
     return {
-        "message": "EdTech Platform API Running"
+        "message": "EdTech Platform API Running Successfully"
     }

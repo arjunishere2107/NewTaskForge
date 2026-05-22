@@ -10,6 +10,8 @@ class Enrollment(Base):
     user_id = Column(Integer, ForeignKey("users.id"))
 
     sessions_purchased = Column(Integer)
+    
+    remaining_sessions = Column(Integer)
 
     total_amount = Column(Float)
 
