@@ -9,7 +9,9 @@ import app.routes.instructor as instructor
 import app.routes.slot as slot
 import app.routes.enrollment as enrollment
 import app.routes.session as session_route
+import app.routes.availability as availability
 import app.routes.dashboard as dashboard
+import app.routes.schedule as schedule_route
 
 # MODELS
 from app.models import (
@@ -18,7 +20,8 @@ from app.models import (
     enrollment as enrollment_model,
     instructor_slot,
     session,
-    session_ledger
+    session_ledger,
+    schedule
 )
 
 # CREATE TABLES
@@ -73,11 +76,25 @@ app.include_router(
     tags=["Sessions"]
 )
 
+# AVAILABILITY ROUTES
+app.include_router(
+    availability.router,
+    prefix="/availability",
+    tags=["Availability"]
+)
+
 # DASHBOARD ROUTES
 app.include_router(
     dashboard.router,
     prefix="/dashboard",
     tags=["Dashboard"]
+)
+
+# SCHEDULE ROUTES
+app.include_router(
+    schedule_route.router,
+    prefix="/schedules",
+    tags=["Schedules"]
 )
 
 # HOME ROUTE

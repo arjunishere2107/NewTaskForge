@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DBSession
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from app.database import get_db
+from app.utils.scheduler import generate_recurring_dates
 
 from app.models.session import Session
 from app.models.instructor_slot import InstructorSlot
@@ -23,14 +24,16 @@ def create_session(
 
     # CHECK AVAILABLE SLOT
     available_slot = (
-        db.query(InstructorSlot)
-        .filter(
-            InstructorSlot.status == "available",
-            InstructorSlot.start_time == data.start_time,
-            InstructorSlot.end_time == data.end_time
-        )
-        .first()
+    db.query(InstructorSlot)
+    .filter(
+        InstructorSlot.status == "available",
+
+        InstructorSlot.start_time <= data.start_time,
+
+        InstructorSlot.end_time >= data.end_time
     )
+    .first()
+)
 
     # IF NO SLOT FOUND
     if not available_slot:
@@ -75,6 +78,81 @@ def create_session(
         "assigned_instructor_id": available_slot.instructor_id
     }
 
+# CREATE RECURRING SESSIONS
+@router.post("/recurring")
+def create_recurring_sessions(
+    data: SessionCreate,
+    weeks: int,
+    db: DBSession = Depends(get_db)
+):
+
+    created_sessions = []
+
+    # GENERATE FUTURE DATES
+    recurring_dates = generate_recurring_dates(
+        data.start_time,
+        weeks
+    )
+
+    for session_date in recurring_dates:
+
+        session_end = session_date + timedelta(hours=1)
+
+        # CHECK AVAILABLE SLOT
+        available_slot = (
+            db.query(InstructorSlot)
+            .filter(
+                InstructorSlot.status == "available",
+                InstructorSlot.start_time == session_date,
+                InstructorSlot.end_time == session_end
+            )
+            .first()
+        )
+
+        # SKIP IF SLOT NOT AVAILABLE
+        if not available_slot:
+            continue
+
+        # CREATE SESSION
+        new_session = Session(
+            user_id=data.user_id,
+            enrollment_id=data.enrollment_id,
+
+            primary_instructor_id=available_slot.instructor_id,
+            assigned_instructor_id=available_slot.instructor_id,
+
+            start_time=session_date,
+            end_time=session_end,
+
+            session_sequence_number=len(created_sessions) + 1,
+
+            is_trial=data.is_trial,
+
+            status="scheduled",
+
+            is_deducted=False
+        )
+
+        db.add(new_session)
+        db.commit()
+        db.refresh(new_session)
+
+        # BOOK SLOT
+        available_slot.status = "booked"
+        available_slot.session_id = new_session.id
+
+        db.commit()
+
+        created_sessions.append({
+            "session_id": new_session.id,
+            "start_time": session_date
+        })
+
+    return {
+        "message": "Recurring sessions created",
+        "total_sessions": len(created_sessions),
+        "sessions": created_sessions
+    }
 
 # COMPLETE SESSION
 @router.put("/complete/{session_id}")
@@ -217,7 +295,7 @@ def student_join(
             detail="Session not found"
         )
 
-    session.student_join_time = datetime.utcnow()
+    session.status = "live"
 
     db.commit()
 
@@ -246,7 +324,7 @@ def teacher_join(
             detail="Session not found"
         )
 
-    session.teacher_join_time = datetime.utcnow()
+    session.status = "live"
 
     db.commit()
 

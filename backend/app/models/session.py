@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, Text
 from app.database import Base
 from datetime import datetime
 
@@ -35,3 +35,6 @@ class Session(Base):
     feedback_submitted = Column(Boolean, default=False)
 
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    teacher_notes = Column(Text, nullable=True)
+    student_feedback = Column(Text, nullable=True)
