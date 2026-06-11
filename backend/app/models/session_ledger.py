@@ -1,5 +1,14 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
-from datetime import datetime
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    Float,
+    DateTime
+)
+
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
 
 from app.database import Base
 
@@ -9,12 +18,66 @@ class SessionLedger(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    enrollment_id = Column(Integer, ForeignKey("enrollments.id"))
+    # RELATIONS
+    session_id = Column(
+        Integer,
+        ForeignKey("sessions.id"),
+        nullable=False
+    )
 
-    session_id = Column(Integer, ForeignKey("sessions.id"))
+    enrollment_id = Column(
+        Integer,
+        ForeignKey("enrollments.id"),
+        nullable=True
+    )
 
-    action_type = Column(String)
+    instructor_id = Column(
+        Integer,
+        ForeignKey("instructors.id"),
+        nullable=True
+    )
 
-    is_deducted = Column(Boolean)
+    # SESSION FINANCIALS
+    amount = Column(
+        Float,
+        default=0
+    )
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    currency = Column(
+        String,
+        default="INR"
+    )
+
+    ledger_type = Column(
+        String,
+        nullable=True
+    )
+    # credit / debit
+
+    description = Column(
+        String,
+        nullable=True
+    )
+
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    # =========================
+    # RELATIONSHIPS
+    # =========================
+
+    session = relationship(
+        "Session",
+        back_populates="session_ledger"
+    )
+
+    enrollment = relationship(
+        "Enrollment",
+        back_populates="session_ledgers"
+    )
+
+    instructor = relationship(
+        "Instructor"
+    )

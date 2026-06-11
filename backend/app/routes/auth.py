@@ -33,6 +33,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         phone=user.phone,
         email=user.email,
 
+        password=user.password,
+
         student_name=user.student_name,
         student_age=user.student_age,
 
@@ -81,7 +83,12 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid phone number"
         )
 
-    # Later Firebase OTP verification will happen here
+    # Password check
+    if existing_user.password != user.password:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid password"
+        )
 
     token = create_access_token({
         "id": existing_user.id,

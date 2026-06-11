@@ -1,10 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 
+# =========================
+# USER CREATE
+# =========================
 class UserCreate(BaseModel):
     phone: str
-    email: Optional[str] = None
+    email: Optional[EmailStr] = None
+
+    password: str
 
     student_name: str
     student_age: int
@@ -13,6 +18,17 @@ class UserCreate(BaseModel):
     parent_phone: str
 
 
+# =========================
+# USER LOGIN
+# =========================
+class UserLogin(BaseModel):
+    phone: str
+    password: str
+
+
+# =========================
+# RESPONSE
+# =========================
 class UserResponse(BaseModel):
     id: int
     phone: str

@@ -1,4 +1,16 @@
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Date,
+    Time,
+    DateTime,
+    ForeignKey
+)
+
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
 from app.database import Base
 
 
@@ -7,24 +19,103 @@ class Schedule(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # RELATIONS
-    user_id = Column(Integer, ForeignKey("users.id"))
-    enrollment_id = Column(Integer, ForeignKey("enrollments.id"))
+    # OWNERSHIP
+    user_id = Column(
+        Integer,
+        ForeignKey("users.id"),
+        nullable=False
+    )
 
+    enrollment_id = Column(
+        Integer,
+        ForeignKey("enrollments.id"),
+        nullable=False
+    )
+
+    # INSTRUCTOR RELATIONSHIP
     primary_instructor_id = Column(
         Integer,
-        ForeignKey("instructors.id")
+        ForeignKey("instructors.id"),
+        nullable=False
     )
 
     # RECURRING PATTERN
-    weekday = Column(String)
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
+    day_of_week = Column(
+        String,
+        nullable=False
+    )
+
+    slot_start_time = Column(
+        Time,
+        nullable=False
+    )
+
+    slot_end_time = Column(
+        Time,
+        nullable=False
+    )
 
     # WEEKLY FREQUENCY
-    frequency_per_week = Column(Integer, default=1)
+    sessions_per_week = Column(
+        Integer,
+        default=1
+    )
 
-    # STATUS
-    is_active = Column(Boolean, default=True)
+    # LIFECYCLE
+    start_date = Column(
+        Date,
+        nullable=False
+    )
 
-    created_at = Column(DateTime)
+    end_date = Column(
+        Date,
+        nullable=True
+    )
+
+    # STATE
+    status = Column(
+        String,
+        default="active"
+    )
+    # active / paused / ended / replaced
+
+    # VERSIONING
+    replaced_by_schedule_id = Column(
+        Integer,
+        ForeignKey("schedules.id"),
+        nullable=True
+    )
+
+    # AUDIT
+    created_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now()
+    )
+
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+
+    # RELATIONSHIPS
+
+    user = relationship(
+        "User",
+        back_populates="schedules"
+    )
+
+    enrollment = relationship(
+        "Enrollment",
+        back_populates="schedules"
+    )
+
+    sessions = relationship(
+        "Session",
+        back_populates="schedule"
+    )
+
+    instructor = relationship(
+        "Instructor",
+        back_populates="schedules"
+    )

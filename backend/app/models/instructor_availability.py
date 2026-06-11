@@ -1,10 +1,10 @@
 from sqlalchemy import (
     Column,
     Integer,
+    String,
     ForeignKey,
     DateTime,
-    Boolean,
-    String
+    Boolean
 )
 
 from sqlalchemy.orm import relationship
@@ -13,8 +13,8 @@ from sqlalchemy.sql import func
 from app.database import Base
 
 
-class InstructorSlot(Base):
-    __tablename__ = "instructor_slots"
+class InstructorAvailability(Base):
+    __tablename__ = "instructor_availability"
 
     id = Column(Integer, primary_key=True, index=True)
 
@@ -23,32 +23,25 @@ class InstructorSlot(Base):
         ForeignKey("instructors.id"),
         nullable=False
     )
-    
+
+    weekday = Column(
+        String,
+        nullable=False
+    )
 
     start_time = Column(
-        DateTime(timezone=True),
+        String,
         nullable=False
     )
 
     end_time = Column(
-        DateTime(timezone=True),
+        String,
         nullable=False
     )
-    
-    session_id = Column(
-        Integer,
-        ForeignKey("sessions.id"),
-        nullable=True
-    )
 
-    is_booked = Column(
+    is_available = Column(
         Boolean,
-        default=False
-    )
-
-    status = Column(
-        String,
-        default="available"
+        default=True
     )
 
     created_at = Column(
@@ -59,5 +52,5 @@ class InstructorSlot(Base):
     # RELATIONSHIP
     instructor = relationship(
         "Instructor",
-        back_populates="slots"
+        back_populates="availabilities"
     )

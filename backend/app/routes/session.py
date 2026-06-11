@@ -1,3 +1,4 @@
+from app.services.session_rules import validate_weekly_limit
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session as DBSession
 from datetime import datetime, timedelta
@@ -26,7 +27,7 @@ def create_session(
     available_slot = (
     db.query(InstructorSlot)
     .filter(
-        InstructorSlot.status == "available",
+        InstructorSlot.slot_status == "available",
 
         InstructorSlot.start_time <= data.start_time,
 
@@ -43,6 +44,12 @@ def create_session(
         )
 
     # CREATE SESSION
+    validate_weekly_limit(
+        db=db,
+        student_id=data.user_id,
+        session_date=data.start_time
+    )
+    
     new_session = Session(
         user_id=data.user_id,
         enrollment_id=data.enrollment_id,
@@ -67,7 +74,8 @@ def create_session(
     db.refresh(new_session)
 
     # UPDATE SLOT STATUS
-    available_slot.status = "booked"
+    available_slot.slot_status = "booked"
+    available_slot.is_booked = True
     available_slot.session_id = new_session.id
 
     db.commit()
@@ -95,6 +103,14 @@ def create_recurring_sessions(
     )
 
     for session_date in recurring_dates:
+        try:
+            validate_weekly_limit(
+                db=db,
+                student_id=data.user_id,
+                session_date=session_date
+            )
+        except HTTPException:
+            continue    
 
         session_end = session_date + timedelta(hours=1)
 
@@ -102,7 +118,7 @@ def create_recurring_sessions(
         available_slot = (
             db.query(InstructorSlot)
             .filter(
-                InstructorSlot.status == "available",
+                InstructorSlot.slot_status == "available",
                 InstructorSlot.start_time == session_date,
                 InstructorSlot.end_time == session_end
             )
@@ -138,7 +154,8 @@ def create_recurring_sessions(
         db.refresh(new_session)
 
         # BOOK SLOT
-        available_slot.status = "booked"
+        available_slot.slot_status = "booked"
+        available_slot.is_booked = True
         available_slot.session_id = new_session.id
 
         db.commit()
@@ -232,11 +249,30 @@ def reschedule_session(
             detail="Session not found"
         )
 
+    if session.status == "completed":
+        raise HTTPException(
+            status_code=400,
+            detail="Completed sessions cannot be rescheduled"
+        )
+
+    if new_start_time <= datetime.utcnow():
+        raise HTTPException(
+            status_code=400,
+            detail="Cannot schedule session in the past"
+        )
+
+    validate_weekly_limit(
+        db=db,
+        student_id=session.user_id,
+        session_date=new_start_time,
+        exclude_session_id=session.id
+    )
+
     # FIND NEW AVAILABLE SLOT
     available_slot = (
         db.query(InstructorSlot)
         .filter(
-            InstructorSlot.status == "available",
+            InstructorSlot.slot_status == "available",
             InstructorSlot.start_time == new_start_time,
             InstructorSlot.end_time == new_end_time
         )
@@ -257,11 +293,13 @@ def reschedule_session(
     )
 
     if old_slot:
-        old_slot.status = "available"
+        old_slot.slot_status = "available"
+        old_slot.is_booked = False
         old_slot.session_id = None
 
     # ASSIGN NEW SLOT
-    available_slot.status = "booked"
+    available_slot.slot_status = "booked"
+    available_slot.is_booked = True
     available_slot.session_id = session.id
 
     # UPDATE SESSION
